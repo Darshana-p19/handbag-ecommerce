@@ -13,7 +13,7 @@ function Footer() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/categories');
+        const response = await axios.get('import.meta.env.VITE_API_URL/api/categories');
         const activeCategories = response.data.filter(cat => cat.isActive !== false);
         setCategories(activeCategories);
       } catch (error) {

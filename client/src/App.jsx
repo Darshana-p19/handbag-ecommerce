@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './context/ThemeContext';
 import { useTheme } from './context/ThemeContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetails from './pages/ProductDetails';
@@ -12,41 +13,14 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Admin from './pages/Admin';
 import AdminLogin from './pages/AdminLogin';
-
-// Add this function
-const fixImageUrls = (products) => {
-  const BASE_URL = 'https://handbag-ecommerce.onrender.com';
-  
-  return products.map(product => {
-    if (product.images && Array.isArray(product.images)) {
-      product.images = product.images.map(img => {
-        if (img.includes('localhost:5000')) {
-          return img.replace('http://localhost:5000', BASE_URL);
-        }
-        return img;
-      });
-    }
-    return product;
-  });
-};
-
-// Use it when fetching products
-const fetchProducts = async () => {
-  try {
-    const response = await fetch('https://handbag-ecommerce.onrender.com/api/products');
-    const data = await response.json();
-    const fixedData = fixImageUrls(data);
-    setProducts(fixedData);
-  } catch (error) {
-    console.error('Error fetching products:', error);
-  }
-};
+import CONFIG from './config/constants';
 
 function AppContent() {
   const { darkMode } = useTheme();
 
   return (
     <Router>
+      <ScrollToTop/>
       <div className={`min-h-screen flex flex-col ${
         darkMode ? 'dark bg-gray-900' : 'bg-gray-50'
       } transition-colors duration-300`}>
