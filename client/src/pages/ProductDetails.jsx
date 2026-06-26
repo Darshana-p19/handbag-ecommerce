@@ -7,6 +7,9 @@ import { useTheme } from '../context/ThemeContext';
 import ProductCard from '../components/ProductCard';
 import CONFIG, { formatPrice, calculateDiscount, calculateSavings, getWhatsAppUrl, getImageUrl } from '../config/constants';
 
+// ✅ Use the API URL from constants
+const API_URL = CONFIG.API_URL;
+
 function ProductDetails() {
   const { id } = useParams();
   const { darkMode } = useTheme();
@@ -20,9 +23,10 @@ function ProductDetails() {
     fetchProduct();
   }, [id]);
 
+  // ✅ UPDATED: Use API_URL from constants
   const fetchProduct = async () => {
     try {
-      const response = await axios.get(`${CONFIG.API_URL}/products/${id}`);
+      const response = await axios.get(`${API_URL}/products/${id}`);
       setProduct(response.data);
       await fetchRelatedProducts(response.data.category);
     } catch (error) {
@@ -32,9 +36,10 @@ function ProductDetails() {
     }
   };
 
+  // ✅ UPDATED: Use API_URL from constants
   const fetchRelatedProducts = async (category) => {
     try {
-      const response = await axios.get(`${CONFIG.API_URL}/products`);
+      const response = await axios.get(`${API_URL}/products`);
       const products = response.data || [];
       setRelatedProducts(products.filter(p => p.id !== id).slice(0, 4));
     } catch (error) {
@@ -155,17 +160,6 @@ function ProductDetails() {
                 {product.title || 'Untitled Product'}
               </h1>
 
-              {/* <div className="flex items-center mb-4">
-                <div className="flex text-yellow-400">
-                  {[...Array(5)].map((_, i) => (
-                    <FaStar key={i} className={i < 4 ? 'text-yellow-400' : 'text-gray-300'} />
-                  ))}
-                </div>
-                <span className={`ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  (24 reviews)
-                </span>
-              </div> */}
-
               {/* Price Section */}
               <div className={`p-4 rounded-xl mb-6 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
                 <div className="flex items-baseline space-x-3 mb-2">
@@ -222,7 +216,6 @@ function ProductDetails() {
                   </button>
                 </div>
                 
-                {/* Price Breakdown with Extra Charge */}
                 <div className={`mt-4 p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
@@ -248,15 +241,6 @@ function ProductDetails() {
                   </div>
                 </div>
               </div>
-
-              {/* <div className="mb-6">
-                <h3 className={`text-lg font-semibold mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                  Description
-                </h3>
-                <p className={`leading-relaxed ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {product.description || 'No description available.'}
-                </p>
-              </div> */}
 
               <button
                 onClick={handleWhatsAppOrder}

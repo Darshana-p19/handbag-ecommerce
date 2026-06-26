@@ -5,6 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaFilter, FaSearch, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 import ProductCard from '../components/ProductCard';
+import CONFIG from '../config/constants';
+
+// ✅ Use the API URL from constants
+const API_URL = CONFIG.API_URL;
 
 function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -17,7 +21,7 @@ function Products() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [productsPerPage] = useState(9); // 9 products per page (3x3 grid)
+  const [productsPerPage] = useState(9);
   const [totalPages, setTotalPages] = useState(1);
 
   const [filters, setFilters] = useState({
@@ -35,32 +39,35 @@ function Products() {
   }, []);
 
   useEffect(() => {
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
     fetchProducts();
   }, [filters]);
 
+  // ✅ UPDATED: Use API_URL from constants
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/categories');
+      const response = await axios.get(`${API_URL}/categories`);
       setCategories(response.data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
   };
 
+  // ✅ UPDATED: Use API_URL from constants
   const fetchColors = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/colors');
+      const response = await axios.get(`${API_URL}/colors`);
       setColors(response.data || []);
     } catch (error) {
       console.error('Error fetching colors:', error);
     }
   };
 
+  // ✅ UPDATED: Use API_URL from constants
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/products');
+      const response = await axios.get(`${API_URL}/products`);
       let filteredProducts = response.data || [];
       
       console.log('All products:', filteredProducts);
@@ -114,7 +121,6 @@ function Products() {
       console.log('Filtered products:', filteredProducts.length);
       setProducts(filteredProducts);
       
-      // Calculate total pages
       const total = Math.ceil(filteredProducts.length / productsPerPage);
       setTotalPages(total > 0 ? total : 1);
       
@@ -147,7 +153,6 @@ function Products() {
     setCurrentPage(1);
   };
 
-  // Pagination functions
   const goToNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(prev => prev + 1);
@@ -167,14 +172,12 @@ function Products() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Get current page products
   const getCurrentPageProducts = () => {
     const startIndex = (currentPage - 1) * productsPerPage;
     const endIndex = startIndex + productsPerPage;
     return products.slice(startIndex, endIndex);
   };
 
-  // Generate page numbers for pagination
   const getPageNumbers = () => {
     const pages = [];
     const maxVisiblePages = 5;
@@ -184,14 +187,11 @@ function Products() {
         pages.push(i);
       }
     } else {
-      // Always show first page
       pages.push(1);
       
-      // Calculate range around current page
       let start = Math.max(2, currentPage - 1);
       let end = Math.min(totalPages - 1, currentPage + 1);
       
-      // Adjust if at start or end
       if (currentPage <= 2) {
         end = Math.min(totalPages - 1, 4);
       }
@@ -199,7 +199,6 @@ function Products() {
         start = Math.max(2, totalPages - 3);
       }
       
-      // Add ellipsis if needed
       if (start > 2) {
         pages.push('...');
       }
@@ -212,7 +211,6 @@ function Products() {
         pages.push('...');
       }
       
-      // Always show last page
       pages.push(totalPages);
     }
     
@@ -227,13 +225,8 @@ function Products() {
     { value: 'name-desc', label: 'Name: Z to A' },
   ];
 
-  // Get unique categories from products
   const uniqueCategories = ['All', ...new Set(products.map(p => p.category).filter(Boolean))];
-  
-  // Get unique colors from products
   const uniqueColors = ['All', ...new Set(products.map(p => p.color).filter(Boolean))];
-
-  // Current page products
   const currentProducts = getCurrentPageProducts();
 
   return (
@@ -268,7 +261,6 @@ function Products() {
                 </button>
               </div>
 
-              {/* Search */}
               <div className="mb-6">
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   Search
@@ -285,7 +277,6 @@ function Products() {
                 </div>
               </div>
 
-              {/* Categories */}
               <div className="mb-6">
                 <h4 className={`font-semibold mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Category</h4>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -304,7 +295,6 @@ function Products() {
                 </div>
               </div>
 
-              {/* Price Range */}
               <div className="mb-6">
                 <h4 className={`font-semibold mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Price Range (₹)</h4>
                 <div className="flex items-center space-x-2">
@@ -326,7 +316,6 @@ function Products() {
                 </div>
               </div>
 
-              {/* Colors */}
               <div className="mb-6">
                 <h4 className={`font-semibold mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Color</h4>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -353,7 +342,6 @@ function Products() {
 
           {/* Products Grid */}
           <div className="flex-1">
-            {/* Sort Bar */}
             <div className={`flex flex-wrap gap-2 mb-6 p-4 rounded-lg shadow ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
               {sorts.map(sort => (
                 <button
@@ -370,7 +358,6 @@ function Products() {
               ))}
             </div>
 
-            {/* Products */}
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3, 4, 5, 6].map(n => (
@@ -398,10 +385,8 @@ function Products() {
                   ))}
                 </div>
 
-                {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="mt-8 flex justify-center items-center space-x-2">
-                    {/* Previous Button */}
                     <button
                       onClick={goToPreviousPage}
                       disabled={currentPage === 1}
@@ -417,7 +402,6 @@ function Products() {
                       Previous
                     </button>
 
-                    {/* Page Numbers */}
                     <div className="flex items-center space-x-1">
                       {getPageNumbers().map((page, index) => (
                         page === '...' ? (
@@ -442,7 +426,6 @@ function Products() {
                       ))}
                     </div>
 
-                    {/* Next Button */}
                     <button
                       onClick={goToNextPage}
                       disabled={currentPage === totalPages}
@@ -460,7 +443,6 @@ function Products() {
                   </div>
                 )}
 
-                {/* Showing Info */}
                 <div className="text-center mt-4 text-sm text-gray-500 dark:text-gray-400">
                   Showing {((currentPage - 1) * productsPerPage) + 1} - {Math.min(currentPage * productsPerPage, products.length)} of {products.length} products
                 </div>

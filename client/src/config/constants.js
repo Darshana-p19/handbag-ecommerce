@@ -1,8 +1,8 @@
 // Global Constants for the entire application
 export const CONFIG = {
-  // API Configuration
-  API_URL: 'http://localhost:5000/api',
-  SERVER_URL: 'http://localhost:5000',
+  // API Configuration - UPDATED to use Render URL
+  API_URL: 'https://handbag-ecommerce.onrender.com/api',
+  SERVER_URL: 'https://handbag-ecommerce.onrender.com',
   
   // WhatsApp Configuration
   WHATSAPP_NUMBER: '919726482629',
@@ -115,22 +115,26 @@ export const calculateSavings = (originalPrice, sellingPrice) => {
   return originalPrice - sellingPrice;
 };
 
-// Get full image URL
+// Get full image URL - UPDATED to handle Render URLs correctly
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return CONFIG.DEFAULT_PRODUCT_IMAGE;
   
+  // ✅ If it's already a full URL, return it (this handles Render URLs)
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
   }
   
+  // ✅ If it's a path starting with /uploads, prepend SERVER_URL
   if (imagePath.startsWith('/uploads')) {
     return `${CONFIG.SERVER_URL}${imagePath}`;
   }
   
+  // ✅ If it's just 'uploads/filename', prepend SERVER_URL
   if (imagePath.startsWith('uploads/')) {
     return `${CONFIG.SERVER_URL}/${imagePath}`;
   }
   
+  // ✅ Default fallback
   return `${CONFIG.SERVER_URL}/uploads/${imagePath}`;
 };
 
@@ -161,10 +165,6 @@ export const getWhatsAppMessage = (product, quantity = 1) => {
   if (product.category && product.category !== 'Uncategorized') {
     message += `Category: ${product.category}\n`;
   }
-  
-  // if (product.stock !== undefined) {
-  //   message += `Stock Available: ${product.stock}\n`;
-  // }
   
   message += `\nPRICE BREAKDOWN\n`;
   message += `----------------------------------------\n`;

@@ -13,6 +13,35 @@ import Contact from './pages/Contact';
 import Admin from './pages/Admin';
 import AdminLogin from './pages/AdminLogin';
 
+// Add this function
+const fixImageUrls = (products) => {
+  const BASE_URL = 'https://handbag-ecommerce.onrender.com';
+  
+  return products.map(product => {
+    if (product.images && Array.isArray(product.images)) {
+      product.images = product.images.map(img => {
+        if (img.includes('localhost:5000')) {
+          return img.replace('http://localhost:5000', BASE_URL);
+        }
+        return img;
+      });
+    }
+    return product;
+  });
+};
+
+// Use it when fetching products
+const fetchProducts = async () => {
+  try {
+    const response = await fetch('https://handbag-ecommerce.onrender.com/api/products');
+    const data = await response.json();
+    const fixedData = fixImageUrls(data);
+    setProducts(fixedData);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+  }
+};
+
 function AppContent() {
   const { darkMode } = useTheme();
 
