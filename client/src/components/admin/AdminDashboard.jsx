@@ -13,6 +13,9 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
+import CONFIG from '../../config/constants';
+
+const API_URL = CONFIG.API_URL;
 
 ChartJS.register(
   CategoryScale,
@@ -40,18 +43,16 @@ function AdminDashboard() {
 
   const fetchRealData = async () => {
     try {
-      // Fetch all data in parallel
       const [productsRes, categoriesRes, colorsRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/products'),
-        axios.get('http://localhost:5000/api/categories'),
-        axios.get('http://localhost:5000/api/colors')
+        axios.get(`${API_URL}/products`),
+        axios.get(`${API_URL}/categories`),
+        axios.get(`${API_URL}/colors`)
       ]);
 
       const products = productsRes.data;
       const categories = categoriesRes.data;
       const colors = colorsRes.data;
 
-      // Calculate products by category
       const categoryCount = {};
       products.forEach(product => {
         const cat = product.category || 'Uncategorized';
@@ -66,7 +67,6 @@ function AdminDashboard() {
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
-      // Set mock data if API fails
       setStats({
         totalProducts: 45,
         totalCategories: 6,
@@ -90,7 +90,6 @@ function AdminDashboard() {
     { icon: FaPalette, label: 'Available Colors', value: stats.totalColors, color: 'bg-pink-500' },
   ];
 
-  // Category data for chart
   const categoryData = {
     labels: Object.keys(productsByCategory),
     datasets: [{
@@ -123,7 +122,6 @@ function AdminDashboard() {
     <div>
       <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
       
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {statCards.map((card, index) => (
           <div key={index} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
@@ -142,7 +140,6 @@ function AdminDashboard() {
         ))}
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold mb-4">Products by Category</h3>
@@ -174,7 +171,6 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold mb-4">Quick Stats</h3>

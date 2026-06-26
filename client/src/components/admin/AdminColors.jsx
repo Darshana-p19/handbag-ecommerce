@@ -3,6 +3,9 @@ import axios from 'axios';
 import { FaEdit, FaTrash, FaPlus, FaPalette, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { ChromePicker } from 'react-color';
 import toast from 'react-hot-toast';
+import CONFIG from '../../config/constants';
+
+const API_URL = CONFIG.API_URL;
 
 function AdminColors() {
   const [colors, setColors] = useState([]);
@@ -24,7 +27,7 @@ function AdminColors() {
   const fetchColors = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/colors');
+      const response = await axios.get(`${API_URL}/colors`);
       setColors(response.data);
     } catch (error) {
       console.error('Error fetching colors:', error);
@@ -45,10 +48,10 @@ function AdminColors() {
     setLoading(true);
     try {
       if (editingColor) {
-        await axios.put(`http://localhost:5000/api/colors/${editingColor.id}`, formData);
+        await axios.put(`${API_URL}/colors/${editingColor.id}`, formData);
         toast.success('Color updated successfully');
       } else {
-        await axios.post('http://localhost:5000/api/colors', formData);
+        await axios.post(`${API_URL}/colors`, formData);
         toast.success('Color added successfully');
       }
       fetchColors();
@@ -64,7 +67,7 @@ function AdminColors() {
     if (window.confirm('Are you sure you want to delete this color?')) {
       setLoading(true);
       try {
-        await axios.delete(`http://localhost:5000/api/colors/${id}`);
+        await axios.delete(`${API_URL}/colors/${id}`);
         toast.success('Color deleted successfully');
         fetchColors();
       } catch (error) {
@@ -77,7 +80,7 @@ function AdminColors() {
 
   const handleToggleActive = async (color) => {
     try {
-      await axios.put(`http://localhost:5000/api/colors/${color.id}`, {
+      await axios.put(`${API_URL}/colors/${color.id}`, {
         ...color,
         isActive: !color.isActive
       });
@@ -175,7 +178,6 @@ function AdminColors() {
         </button>
       </div>
 
-      {/* Add/Edit Color Form */}
       {showForm && (
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h3 className="text-lg font-semibold mb-4">
@@ -217,7 +219,6 @@ function AdminColors() {
               <p className="text-xs text-gray-500 mt-1">Used for URL filtering (auto-generated from name)</p>
             </div>
 
-            {/* Color Picker */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Color Code (Hex)
@@ -251,7 +252,6 @@ function AdminColors() {
               )}
             </div>
 
-            {/* Quick Color Palette */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Quick Color Palette
@@ -288,7 +288,6 @@ function AdminColors() {
               </div>
             </div>
 
-            {/* Active Toggle */}
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -302,7 +301,6 @@ function AdminColors() {
               </label>
             </div>
 
-            {/* Live Preview */}
             <div className="border-t pt-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">Live Preview</label>
               <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg">

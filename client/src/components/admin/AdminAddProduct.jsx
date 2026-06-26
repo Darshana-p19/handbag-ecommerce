@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { FaUpload, FaTimes } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import CONFIG from '../../config/constants';
+
+const API_URL = CONFIG.API_URL;
 
 function AdminAddProduct() {
   const { id } = useParams();
@@ -40,7 +43,7 @@ function AdminAddProduct() {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/categories');
+      const response = await axios.get(`${API_URL}/categories`);
       const activeCategories = response.data.filter(cat => cat.isActive);
       setCategories(activeCategories);
       
@@ -55,7 +58,7 @@ function AdminAddProduct() {
 
   const fetchColors = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/colors');
+      const response = await axios.get(`${API_URL}/colors`);
       const activeColors = response.data.filter(color => color.isActive);
       setColors(activeColors);
       
@@ -72,7 +75,7 @@ function AdminAddProduct() {
 
   const fetchProduct = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/products/${id}`);
+      const response = await axios.get(`${API_URL}/products/${id}`);
       const product = response.data;
       setFormData({
         title: product.title || '',
@@ -107,7 +110,7 @@ function AdminAddProduct() {
       uploadFormData.append('images', file);
     });
 
-    const response = await axios.post('http://localhost:5000/api/upload/multiple', uploadFormData, {
+    const response = await axios.post(`${API_URL}/upload/multiple`, uploadFormData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 
@@ -152,10 +155,10 @@ function AdminAddProduct() {
       };
 
       if (isEditMode) {
-        await axios.put(`http://localhost:5000/api/products/${id}`, productData);
+        await axios.put(`${API_URL}/products/${id}`, productData);
         toast.success('Product updated successfully');
       } else {
-        await axios.post('http://localhost:5000/api/products', productData);
+        await axios.post(`${API_URL}/products`, productData);
         toast.success('Product created successfully');
       }
 

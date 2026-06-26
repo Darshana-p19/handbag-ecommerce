@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import AdminProducts from '../components/admin/AdminProducts';
 import AdminAddProduct from '../components/admin/AdminAddProduct';
 import AdminCategories from '../components/admin/AdminCategories';
-import AdminColors from '../components/admin/AdminColors';  // Added
+import AdminColors from '../components/admin/AdminColors';
 import AdminDashboard from '../components/admin/AdminDashboard';
 
 function Admin() {
@@ -58,7 +58,6 @@ function Admin() {
               <FaList className="mr-3" />
               Categories
             </Link>
-            {/* Added Colors Link */}
             <Link to="/admin/colors" className="flex items-center px-6 py-3 text-gray-700 hover:bg-primary hover:text-white transition-colors">
               <FaPalette className="mr-3" />
               Colors
@@ -81,7 +80,7 @@ function Admin() {
             <Route path="products/add" element={<AdminAddProduct />} />
             <Route path="products/edit/:id" element={<AdminAddProduct />} />
             <Route path="categories" element={<AdminCategories />} />
-            <Route path="colors" element={<AdminColors />} />  {/* Added */}
+            <Route path="colors" element={<AdminColors />} />
           </Routes>
         </div>
       </div>

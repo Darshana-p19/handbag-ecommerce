@@ -4,6 +4,10 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { FaLock, FaEnvelope } from 'react-icons/fa';
+import CONFIG from '../config/constants';
+
+// ✅ Use API_URL from constants
+const API_URL = CONFIG.API_URL;
 
 function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -16,7 +20,8 @@ function AdminLogin() {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      // ✅ UPDATED: Use API_URL from constants
+      const response = await axios.post(`${API_URL}/auth/login`, {
         email,
         password
       });
@@ -26,6 +31,7 @@ function AdminLogin() {
       navigate('/admin');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Login failed');
+      console.error('Login error:', error);
     } finally {
       setLoading(false);
     }

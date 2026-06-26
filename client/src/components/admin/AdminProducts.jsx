@@ -15,7 +15,7 @@ function AdminProducts() {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/products');
+      const response = await axios.get('import.meta.env.VITE_API_URL/api/products');
       setProducts(response.data);
     } catch (error) {
       toast.error('Failed to fetch products');
@@ -27,7 +27,7 @@ function AdminProducts() {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/products/${id}`);
+        await axios.delete(`import.meta.env.VITE_API_URL/api/products/${id}`);
         toast.success('Product deleted successfully');
         fetchProducts();
       } catch (error) {

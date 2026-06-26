@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import CONFIG from '../../config/constants';
+
+const API_URL = CONFIG.API_URL;
 
 function AdminCategories() {
   const [categories, setCategories] = useState([]);
@@ -19,7 +22,7 @@ function AdminCategories() {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/categories');
+      const response = await axios.get(`${API_URL}/categories`);
       setCategories(response.data);
     } catch (error) {
       toast.error('Failed to fetch categories');
@@ -30,10 +33,10 @@ function AdminCategories() {
     e.preventDefault();
     try {
       if (editingCategory) {
-        await axios.put(`http://localhost:5000/api/categories/${editingCategory.id}`, formData);
+        await axios.put(`${API_URL}/categories/${editingCategory.id}`, formData);
         toast.success('Category updated');
       } else {
-        await axios.post('http://localhost:5000/api/categories', formData);
+        await axios.post(`${API_URL}/categories`, formData);
         toast.success('Category added');
       }
       fetchCategories();
@@ -46,7 +49,7 @@ function AdminCategories() {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/categories/${id}`);
+        await axios.delete(`${API_URL}/categories/${id}`);
         toast.success('Category deleted');
         fetchCategories();
       } catch (error) {
