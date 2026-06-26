@@ -19,6 +19,11 @@ node_modules
 # Uploads (Cloudinary handles uploads, but keep local uploads ignored)
 uploads/*
 !uploads/.gitkeep
+!uploads/*.jpeg
+!uploads/*.jpg
+!uploads/*.png
+!uploads/*.gif
+!uploads/*.webp
 
 # Editor directories and files
 .vscode/*
