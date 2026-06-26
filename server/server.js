@@ -27,6 +27,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/colors', colorRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/uploads', express.static('uploads'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -61,7 +62,7 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`íº€ Server running on port ${PORT}`);
-  console.log(`í³¡ API available at http://localhost:${PORT}/api`);
-  console.log(`í³ Uploads available at http://localhost:${PORT}/uploads`);
+  console.log(`ï¿½ï¿½ï¿½ Server running on port ${PORT}`);
+  console.log(`ï¿½ï¿½ï¿½ API available at http://localhost:${PORT}/api`);
+  console.log(`ï¿½ï¿½ï¿½ Uploads available at http://localhost:${PORT}/uploads`);
 });
