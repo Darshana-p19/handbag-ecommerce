@@ -5,10 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaFilter, FaSearch, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 import ProductCard from '../components/ProductCard';
-import CONFIG from '../config/constants';
 
-// ✅ Use the API URL from constants
-const API_URL = CONFIG.API_URL;
+// ✅ FORCE the URL here for testing
+const API_URL = 'https://handbag-ecommerce.onrender.com/api';
 
 function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -19,7 +18,6 @@ function Products() {
   const [categories, setCategories] = useState([]);
   const [colors, setColors] = useState([]);
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(9);
   const [totalPages, setTotalPages] = useState(1);
@@ -43,34 +41,43 @@ function Products() {
     fetchProducts();
   }, [filters]);
 
-  // ✅ UPDATED: Use API_URL from constants
+  // ✅ UPDATED with better error handling and logging
   const fetchCategories = async () => {
     try {
+      console.log('🔄 Fetching categories from:', `${API_URL}/categories`);
       const response = await axios.get(`${API_URL}/categories`);
-      setCategories(response.data || []);
+      const categoriesData = Array.isArray(response.data) ? response.data : [];
+      console.log('✅ Categories loaded:', categoriesData.length);
+      setCategories(categoriesData);
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error('❌ Error fetching categories:', error.message);
+      setCategories([]);
     }
   };
 
-  // ✅ UPDATED: Use API_URL from constants
+  // ✅ UPDATED with better error handling and logging
   const fetchColors = async () => {
     try {
+      console.log('🔄 Fetching colors from:', `${API_URL}/colors`);
       const response = await axios.get(`${API_URL}/colors`);
-      setColors(response.data || []);
+      const colorsData = Array.isArray(response.data) ? response.data : [];
+      console.log('✅ Colors loaded:', colorsData.length);
+      setColors(colorsData);
     } catch (error) {
-      console.error('Error fetching colors:', error);
+      console.error('❌ Error fetching colors:', error.message);
+      setColors([]);
     }
   };
 
-  // ✅ UPDATED: Use API_URL from constants
+  // ✅ UPDATED with better error handling and logging
   const fetchProducts = async () => {
     setLoading(true);
     try {
+      console.log('🔄 Fetching products from:', `${API_URL}/products`);
       const response = await axios.get(`${API_URL}/products`);
-      let filteredProducts = response.data || [];
+      let filteredProducts = Array.isArray(response.data) ? response.data : [];
       
-      console.log('All products:', filteredProducts);
+      console.log('✅ Products loaded:', filteredProducts.length);
       
       // Filter by category
       if (filters.category && filters.category !== 'All') {
@@ -118,14 +125,13 @@ function Products() {
         filteredProducts.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
       }
       
-      console.log('Filtered products:', filteredProducts.length);
       setProducts(filteredProducts);
       
       const total = Math.ceil(filteredProducts.length / productsPerPage);
       setTotalPages(total > 0 ? total : 1);
       
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('❌ Error fetching products:', error.message);
       setProducts([]);
       setTotalPages(1);
     } finally {
@@ -133,6 +139,7 @@ function Products() {
     }
   };
 
+  // ... rest of your component remains the same
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     if (key !== 'page') {
@@ -230,6 +237,7 @@ function Products() {
   const currentProducts = getCurrentPageProducts();
 
   return (
+    // ... your JSX remains the same
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
