@@ -5,6 +5,9 @@ import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import CONFIG from '../config/constants';
 
+// ✅ Use the API URL from constants
+const API_URL = CONFIG.API_URL;
+
 function Footer() {
   const { darkMode } = useTheme();
   const [categories, setCategories] = useState([]);
@@ -13,11 +16,14 @@ function Footer() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('import.meta.env.VITE_API_URL/api/categories');
+        // ✅ FIXED: Use CONFIG.API_URL instead of string literal
+        const response = await axios.get(`${API_URL}/categories`);
         const activeCategories = response.data.filter(cat => cat.isActive !== false);
         setCategories(activeCategories);
+        console.log('✅ Footer categories loaded:', activeCategories.length);
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error('❌ Error fetching categories:', error);
+        // Fallback categories if API fails
         setCategories([
           { id: '1', name: 'Handbags' },
           { id: '2', name: 'Wallets' },
@@ -44,7 +50,7 @@ function Footer() {
         ? [{ name: 'Loading...', to: '#' }]
         : categories.map(cat => ({
             name: cat.name,
-            to: `/products?category=${cat.name}`
+            to: `/products?category=${encodeURIComponent(cat.name)}`
           }))
     },
     {
