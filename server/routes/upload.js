@@ -73,7 +73,7 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
       public_id: file.filename
     }));
 
-    console.log(`📤 Uploaded ${images.length} images`);
+    console.log(`📤 Uploaded ${images.length} images:`, images.map(i => i.url));
     res.json(images);
   } catch (error) {
     console.error('Upload error:', error);
