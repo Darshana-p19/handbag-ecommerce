@@ -38,9 +38,9 @@ export const CONFIG = {
   CURRENCY: 'INR',
   CURRENCY_SYMBOL: 'Rs.',
   
-  // Default Images
-  DEFAULT_PRODUCT_IMAGE: 'https://via.placeholder.com/500x500?text=No+Image',
-  PLACEHOLDER_IMAGE: 'https://via.placeholder.com/300x300?text=Image+Not+Found',
+  // ✅ FIXED: Use reliable placeholder images
+  DEFAULT_PRODUCT_IMAGE: 'https://placehold.co/500x500/e8d5b7/8B7355?text=No+Image',
+  PLACEHOLDER_IMAGE: 'https://placehold.co/300x300/e8d5b7/8B7355?text=Image+Not+Found',
   
   // Pagination
   ITEMS_PER_PAGE: 12,
