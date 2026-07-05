@@ -16,7 +16,6 @@ function AdminProducts() {
     fetchProducts();
   }, []);
 
-  // ✅ FIXED: Use API_URL from constants
   const fetchProducts = async () => {
     try {
       const response = await axios.get(`${API_URL}/products`);
@@ -29,7 +28,6 @@ function AdminProducts() {
     }
   };
 
-  // ✅ FIXED: Use API_URL from constants
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
@@ -103,7 +101,10 @@ function AdminProducts() {
                       src={product.images?.[0] || ''}
                       alt={product.title}
                       className="w-12 h-12 rounded-lg object-cover mr-3"
-                      onError={(e) => { e.target.src = 'https://via.placeholder.com/50?text=No+Image'; }}
+                      // ✅ FIXED: Use placehold.co instead of via.placeholder.com
+                      onError={(e) => { 
+                        e.target.src = 'https://placehold.co/50x50/e8d5b7/8B7355?text=No+Image';
+                      }}
                     />
                     <span className="font-medium">{product.title}</span>
                   </div>

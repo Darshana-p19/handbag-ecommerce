@@ -334,6 +334,10 @@ function AdminAddProduct() {
                       src={image}
                       alt={`Product ${index + 1}`}
                       className="w-full h-32 object-cover rounded-lg"
+                      // ✅ FIXED: Add onError handler for image preview
+                      onError={(e) => {
+                        e.target.src = 'https://placehold.co/300x300/e8d5b7/8B7355?text=Image+Error';
+                      }}
                     />
                     <button
                       type="button"
