@@ -40,12 +40,18 @@ async function fixAllProducts() {
     for (const doc of snapshot.docs) {
       const data = doc.data();
       let needsUpdate = false;
+      let newImages = [];
       
       if (data.images && Array.isArray(data.images)) {
-        const newImages = data.images.map(img => {
+        newImages = data.images.map(img => {
           if (img && img.includes('localhost:5000')) {
             needsUpdate = true;
             return img.replace('http://localhost:5000', baseUrl);
+          }
+          // Also fix if it's using localhost without http
+          if (img && img.includes('localhost:5000')) {
+            needsUpdate = true;
+            return img.replace('localhost:5000', baseUrl);
           }
           return img;
         });

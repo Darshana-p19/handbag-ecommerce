@@ -4,6 +4,11 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// ✅ Use Render URL from environment
+const BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://handbag-ecommerce.onrender.com'
+  : 'http://localhost:5000';
+
 // Create uploads directory if it doesn't exist
 const uploadDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -40,8 +45,8 @@ router.post('/single', upload.single('image'), async (req, res) => {
       return res.status(400).json({ message: 'Please upload a file' });
     }
 
-    // Return local URL
-    const imageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+    // ✅ Use dynamic BASE_URL
+    const imageUrl = `${BASE_URL}/uploads/${req.file.filename}`;
     
     res.json({
       url: imageUrl,
@@ -60,8 +65,9 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
       return res.status(400).json({ message: 'Please upload at least one file' });
     }
 
+    // ✅ Use dynamic BASE_URL
     const images = req.files.map(file => ({
-      url: `http://localhost:5000/uploads/${file.filename}`,
+      url: `${BASE_URL}/uploads/${file.filename}`,
       public_id: file.filename
     }));
 
