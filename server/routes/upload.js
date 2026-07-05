@@ -4,10 +4,12 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// ✅ Use Render URL from environment
+// ✅ Dynamic BASE_URL based on environment
 const BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://handbag-ecommerce.onrender.com'
   : 'http://localhost:5000';
+
+console.log(`📁 Uploads will use BASE_URL: ${BASE_URL}`);
 
 // Create uploads directory if it doesn't exist
 const uploadDir = path.join(__dirname, '../uploads');
@@ -71,6 +73,7 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
       public_id: file.filename
     }));
 
+    console.log(`📤 Uploaded ${images.length} images`);
     res.json(images);
   } catch (error) {
     console.error('Upload error:', error);
