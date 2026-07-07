@@ -4,7 +4,6 @@ const multer = require('multer');
 const axios = require('axios');
 const FormData = require('form-data');
 
-// Memory storage
 const storage = multer.memoryStorage();
 
 const upload = multer({ 
@@ -19,22 +18,18 @@ const upload = multer({
   }
 });
 
-// ✅ TEST ENDPOINT
 router.get('/test', (req, res) => {
   res.json({
     message: 'Upload route is working!',
     cloudinary_configured: !!process.env.CLOUDINARY_CLOUD_NAME,
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'missing',
-    api_key: process.env.CLOUDINARY_API_KEY ? 'present' : 'missing',
-    upload_preset: 'handbag-store',
-    server_time: new Date().toISOString()
+    upload_preset: 'handbag-store'
   });
 });
 
-// ✅ MULTIPLE UPLOAD - Using unsigned upload preset
 router.post('/multiple', upload.array('images', 10), async (req, res) => {
   try {
-    console.log('📤 Upload request received');
+    console.log('��� Upload request received');
     console.log('   Files:', req.files?.length || 0);
     
     if (!req.files || req.files.length === 0) {
@@ -45,7 +40,6 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
     }
 
     if (!process.env.CLOUDINARY_CLOUD_NAME) {
-      console.error('❌ Cloudinary cloud name missing!');
       return res.status(500).json({
         success: false,
         message: 'Cloudinary not configured'
@@ -53,7 +47,6 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
     }
 
     console.log('☁️ Uploading to Cloudinary using unsigned preset...');
-    console.log(`   Cloud Name: ${process.env.CLOUDINARY_CLOUD_NAME}`);
     console.log(`   Upload Preset: handbag-store`);
 
     const imageUrls = [];
@@ -64,7 +57,6 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
       try {
         console.log(`   Uploading ${i + 1}: ${file.originalname} (${file.size} bytes)`);
         
-        // ✅ IMPORTANT: Use FormData for unsigned upload
         const formData = new FormData();
         formData.append('file', file.buffer, {
           filename: file.originalname,
@@ -73,7 +65,6 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
         formData.append('upload_preset', 'handbag-store');
         formData.append('folder', 'handbag-store');
         
-        // Upload directly to Cloudinary API
         const response = await axios.post(
           `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload`,
           formData,
@@ -81,7 +72,7 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
             headers: {
               ...formData.getHeaders()
             },
-            timeout: 30000 // 30 seconds timeout
+            timeout: 30000
           }
         );
         
@@ -100,8 +91,6 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
       throw new Error('All images failed to upload: ' + errors.map(e => e.file).join(', '));
     }
 
-    console.log(`✅ Successfully uploaded ${imageUrls.length} images`);
-
     res.json({
       success: true,
       images: imageUrls,
@@ -118,24 +107,12 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
   }
 });
 
-// ✅ SINGLE UPLOAD
 router.post('/single', upload.single('image'), async (req, res) => {
   try {
-    console.log('📤 Single upload request received');
-    
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
-    if (!process.env.CLOUDINARY_CLOUD_NAME) {
-      return res.status(500).json({
-        success: false,
-        message: 'Cloudinary not configured'
-      });
-    }
-
-    console.log(`☁️ Uploading: ${req.file.originalname}`);
-    
     const formData = new FormData();
     formData.append('file', req.file.buffer, {
       filename: req.file.originalname,
@@ -153,8 +130,6 @@ router.post('/single', upload.single('image'), async (req, res) => {
         }
       }
     );
-
-    console.log(`✅ Uploaded: ${response.data.secure_url}`);
 
     res.json({
       success: true,
