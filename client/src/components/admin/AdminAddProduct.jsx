@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import CONFIG from '../../config/constants';
 
 const API_URL = CONFIG.API_URL;
+const BASE_URL = CONFIG.SERVER_URL;
 
 function AdminAddProduct() {
   const { id } = useParams();
@@ -110,11 +111,18 @@ function AdminAddProduct() {
       uploadFormData.append('images', file);
     });
 
-    const response = await axios.post(`${API_URL}/upload/multiple`, uploadFormData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    try {
+      const response = await axios.post(`${API_URL}/upload/multiple`, uploadFormData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000 // 60 second timeout for large uploads
+      });
 
-    return response.data.map(img => img.url);
+      return response.data.map(img => img.url);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload images. Please try again.');
+      return [];
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -143,8 +151,15 @@ function AdminAddProduct() {
     setUploading(true);
 
     try {
-      const newImageUrls = await handleImageUpload();
-      const allImages = [...formData.images, ...newImageUrls];
+      let allImages = [...formData.images];
+      
+      // Upload new images if any
+      if (imageFiles.length > 0) {
+        const newImageUrls = await handleImageUpload();
+        if (newImageUrls.length > 0) {
+          allImages = [...allImages, ...newImageUrls];
+        }
+      }
 
       const productData = {
         ...formData,
@@ -164,6 +179,7 @@ function AdminAddProduct() {
 
       navigate('/admin/products');
     } catch (error) {
+      console.error('Save error:', error);
       toast.error(error.response?.data?.message || 'Failed to save product');
     } finally {
       setUploading(false);
@@ -173,6 +189,32 @@ function AdminAddProduct() {
   const removeImage = (index) => {
     const newImages = formData.images.filter((_, i) => i !== index);
     setFormData({ ...formData, images: newImages });
+  };
+
+  // ✅ Helper function to fix image URLs
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return 'https://placehold.co/300x300/e8d5b7/8B7355?text=Image+Error';
+    
+    // If it's already a full URL (Cloudinary, Render, etc.)
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      // If it's a localhost URL, replace with Render URL
+      if (imagePath.includes('localhost:5000')) {
+        return imagePath.replace('http://localhost:5000', BASE_URL);
+      }
+      return imagePath;
+    }
+    
+    // If it's a relative path
+    if (imagePath.startsWith('/uploads/')) {
+      return `${BASE_URL}${imagePath}`;
+    }
+    
+    if (imagePath.startsWith('uploads/')) {
+      return `${BASE_URL}/${imagePath}`;
+    }
+    
+    // Default
+    return `${BASE_URL}/uploads/${imagePath}`;
   };
 
   if (loadingData) {
@@ -331,18 +373,25 @@ function AdminAddProduct() {
                 {formData.images.map((image, index) => (
                   <div key={index} className="relative">
                     <img
-                      src={image}
+                      src={getImageUrl(image)}
                       alt={`Product ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg"
-                      // ✅ FIXED: Add onError handler for image preview
+                      className="w-full h-32 object-cover rounded-lg border border-gray-200"
                       onError={(e) => {
-                        e.target.src = 'https://placehold.co/300x300/e8d5b7/8B7355?text=Image+Error';
+                        // Try to fix localhost URLs
+                        let src = e.target.src;
+                        if (src.includes('localhost:5000')) {
+                          src = src.replace('http://localhost:5000', BASE_URL);
+                          e.target.src = src;
+                        } else {
+                          // If still fails, use placeholder
+                          e.target.src = 'https://placehold.co/300x300/e8d5b7/8B7355?text=Image+Error';
+                        }
                       }}
                     />
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
-                      className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                      className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
                     >
                       <FaTimes size={12} />
                     </button>
@@ -351,9 +400,10 @@ function AdminAddProduct() {
               </div>
             )}
 
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
               <FaUpload className="text-3xl text-gray-400 mx-auto mb-2" />
               <p className="text-gray-600 mb-2">Drag and drop images or click to browse</p>
+              <p className="text-xs text-gray-400 mb-4">Supports JPG, PNG, WEBP (Max 5MB each)</p>
               <input
                 type="file"
                 multiple
@@ -386,7 +436,7 @@ function AdminAddProduct() {
             )}
           </div>
 
-          <div className="flex justify-end space-x-4">
+          <div className="flex justify-end space-x-4 pt-4 border-t">
             <button
               type="button"
               onClick={() => navigate('/admin/products')}
