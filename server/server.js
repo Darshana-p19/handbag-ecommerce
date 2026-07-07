@@ -13,12 +13,16 @@ const uploadRoutes = require('./routes/upload');
 
 const app = express();
 
+// ✅ Log server time on startup
+console.log('🕐 Server Time:', new Date().toISOString());
+console.log('🕐 Timestamp:', Math.floor(Date.now() / 1000));
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from uploads folder - UNCOMMENTED
+// Serve static files from uploads folder - KEEP ONLY ONE
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
@@ -27,11 +31,14 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/colors', colorRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
-// app.use('/uploads', express.static('uploads'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    server_time: Math.floor(Date.now() / 1000)
+  });
 });
 
 // Debug endpoint to list all files in uploads
@@ -62,7 +69,7 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`��� Server running on port ${PORT}`);
-  console.log(`��� API available at http://localhost:${PORT}/api`);
-  console.log(`��� Uploads available at http://localhost:${PORT}/uploads`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 API available at http://localhost:${PORT}/api`);
+  console.log(`📁 Uploads available at http://localhost:${PORT}/uploads`);
 });
