@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const cloudinary = require('../config/cloudinary');
+const cloudinary = require('../config/cloudinary'); // ✅ Make sure this path is correct
 
 // Memory storage
 const storage = multer.memoryStorage();
@@ -18,7 +18,7 @@ const upload = multer({
   }
 });
 
-// ✅ TEST ENDPOINT
+// ✅ TEST ENDPOINT - Add this to debug
 router.get('/test', (req, res) => {
   res.json({
     message: 'Upload route is working!',
@@ -69,7 +69,9 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
         console.log(`   Uploading ${i + 1}: ${file.originalname} (${file.size} bytes)`);
         
         const result = await cloudinary.uploader.upload(dataURI, {
-          folder: 'handbag-store'
+          folder: 'handbag-store',
+          // ✅ Add timestamp to ensure proper signature
+          timestamp: Math.floor(Date.now() / 1000)
         });
         
         console.log(`   ✅ Uploaded: ${result.secure_url}`);
@@ -117,7 +119,8 @@ router.post('/single', upload.single('image'), async (req, res) => {
     const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
     const result = await cloudinary.uploader.upload(dataURI, {
-      folder: 'handbag-store'
+      folder: 'handbag-store',
+      timestamp: Math.floor(Date.now() / 1000)
     });
 
     res.json({
