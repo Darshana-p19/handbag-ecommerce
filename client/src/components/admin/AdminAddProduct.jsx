@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { FaUpload, FaTimes } from 'react-icons/fa';
-import toast from 'react-hot-toast';
-import CONFIG from '../../config/constants';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { FaUpload, FaTimes } from "react-icons/fa";
+import toast from "react-hot-toast";
+import CONFIG from "../../config/constants";
 
 const API_URL = CONFIG.API_URL;
 const BASE_URL = CONFIG.SERVER_URL;
@@ -14,19 +14,19 @@ function AdminAddProduct() {
   const isEditMode = Boolean(id);
 
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: '',
-    originalPrice: '',
-    category: '',
-    color: '',
-    stock: '10',
-    images: []
+    title: "",
+    description: "",
+    price: "",
+    originalPrice: "",
+    category: "",
+    color: "",
+    stock: "10",
+    images: [],
   });
-  
+
   const [imageFiles, setImageFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
-  
+
   const [categories, setCategories] = useState([]);
   const [colors, setColors] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -45,30 +45,33 @@ function AdminAddProduct() {
   const fetchCategories = async () => {
     try {
       const response = await axios.get(`${API_URL}/categories`);
-      const activeCategories = response.data.filter(cat => cat.isActive);
+      const activeCategories = response.data.filter((cat) => cat.isActive);
       setCategories(activeCategories);
-      
+
       if (!formData.category && activeCategories.length > 0) {
-        setFormData(prev => ({ ...prev, category: activeCategories[0].name }));
+        setFormData((prev) => ({
+          ...prev,
+          category: activeCategories[0].name,
+        }));
       }
     } catch (error) {
-      console.error('Error fetching categories:', error);
-      toast.error('Failed to load categories');
+      console.error("Error fetching categories:", error);
+      toast.error("Failed to load categories");
     }
   };
 
   const fetchColors = async () => {
     try {
       const response = await axios.get(`${API_URL}/colors`);
-      const activeColors = response.data.filter(color => color.isActive);
+      const activeColors = response.data.filter((color) => color.isActive);
       setColors(activeColors);
-      
+
       if (!formData.color && activeColors.length > 0) {
-        setFormData(prev => ({ ...prev, color: activeColors[0].name }));
+        setFormData((prev) => ({ ...prev, color: activeColors[0].name }));
       }
     } catch (error) {
-      console.error('Error fetching colors:', error);
-      toast.error('Failed to load colors');
+      console.error("Error fetching colors:", error);
+      toast.error("Failed to load colors");
     } finally {
       setLoadingData(false);
     }
@@ -79,18 +82,18 @@ function AdminAddProduct() {
       const response = await axios.get(`${API_URL}/products/${id}`);
       const product = response.data;
       setFormData({
-        title: product.title || '',
-        description: product.description || '',
-        price: product.price?.toString() || '',
-        originalPrice: product.originalPrice?.toString() || '',
-        category: product.category || '',
-        color: product.color || '',
-        stock: product.stock?.toString() || '10',
-        images: product.images || []
+        title: product.title || "",
+        description: product.description || "",
+        price: product.price?.toString() || "",
+        originalPrice: product.originalPrice?.toString() || "",
+        category: product.category || "",
+        color: product.color || "",
+        stock: product.stock?.toString() || "10",
+        images: product.images || [],
       });
     } catch (error) {
-      toast.error('Failed to fetch product');
-      navigate('/admin/products');
+      toast.error("Failed to fetch product");
+      navigate("/admin/products");
     }
   };
 
@@ -103,56 +106,103 @@ function AdminAddProduct() {
     setImageFiles(files);
   };
 
+  // old
+  // const handleImageUpload = async () => {
+  //   if (imageFiles.length === 0) return [];
+
+  //   const uploadFormData = new FormData();
+  //   imageFiles.forEach(file => {
+  //     uploadFormData.append('images', file);
+  //   });
+
+  //   try {
+  //     const response = await axios.post(`${API_URL}/upload/multiple`, uploadFormData, {
+  //       headers: { 'Content-Type': 'multipart/form-data' },
+  //       timeout: 60000 // 60 second timeout for large uploads
+  //     });
+
+  //     return response.data.map(img => img.url);
+  //   } catch (error) {
+  //     console.error('Upload error:', error);
+  //     toast.error('Failed to upload images. Please try again.');
+  //     return [];
+  //   }
+  // };
+
   const handleImageUpload = async () => {
     if (imageFiles.length === 0) return [];
 
     const uploadFormData = new FormData();
-    imageFiles.forEach(file => {
-      uploadFormData.append('images', file);
+    imageFiles.forEach((file) => {
+      uploadFormData.append("images", file);
     });
 
     try {
-      const response = await axios.post(`${API_URL}/upload/multiple`, uploadFormData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 60000 // 60 second timeout for large uploads
-      });
+      console.log("📤 Uploading images...");
 
-      return response.data.map(img => img.url);
+      const response = await axios.post(
+        `${API_URL}/upload/multiple`,
+        uploadFormData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          timeout: 60000, // 60 second timeout
+        },
+      );
+
+      console.log("✅ Upload response:", response.data);
+
+      // ✅ Handle both response formats
+      if (response.data.success) {
+        return response.data.images || [];
+      } else if (Array.isArray(response.data)) {
+        return response.data.map((img) => img.url || img);
+      } else if (response.data.images) {
+        return response.data.images;
+      }
+
+      return [];
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload images. Please try again.');
+      console.error("❌ Upload error:", error);
+      console.error("Error details:", error.response?.data);
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to upload images. Please try again.",
+      );
       return [];
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.category) {
-      toast.error('Please select a category');
+      toast.error("Please select a category");
       return;
     }
-    
+
     if (!formData.color) {
-      toast.error('Please select a color');
+      toast.error("Please select a color");
       return;
     }
-    
+
     if (!formData.price || parseFloat(formData.price) <= 0) {
-      toast.error('Please enter a valid price');
+      toast.error("Please enter a valid price");
       return;
     }
-    
-    if (formData.originalPrice && parseFloat(formData.originalPrice) <= parseFloat(formData.price)) {
-      toast.error('Original price (MRP) must be higher than selling price');
+
+    if (
+      formData.originalPrice &&
+      parseFloat(formData.originalPrice) <= parseFloat(formData.price)
+    ) {
+      toast.error("Original price (MRP) must be higher than selling price");
       return;
     }
-    
+
     setUploading(true);
 
     try {
       let allImages = [...formData.images];
-      
+
       // Upload new images if any
       if (imageFiles.length > 0) {
         const newImageUrls = await handleImageUpload();
@@ -164,23 +214,25 @@ function AdminAddProduct() {
       const productData = {
         ...formData,
         price: parseFloat(formData.price) || 0,
-        originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : null,
+        originalPrice: formData.originalPrice
+          ? parseFloat(formData.originalPrice)
+          : null,
         stock: parseInt(formData.stock) || 0,
-        images: allImages
+        images: allImages,
       };
 
       if (isEditMode) {
         await axios.put(`${API_URL}/products/${id}`, productData);
-        toast.success('Product updated successfully');
+        toast.success("Product updated successfully");
       } else {
         await axios.post(`${API_URL}/products`, productData);
-        toast.success('Product created successfully');
+        toast.success("Product created successfully");
       }
 
-      navigate('/admin/products');
+      navigate("/admin/products");
     } catch (error) {
-      console.error('Save error:', error);
-      toast.error(error.response?.data?.message || 'Failed to save product');
+      console.error("Save error:", error);
+      toast.error(error.response?.data?.message || "Failed to save product");
     } finally {
       setUploading(false);
     }
@@ -193,26 +245,27 @@ function AdminAddProduct() {
 
   // ✅ Helper function to fix image URLs
   const getImageUrl = (imagePath) => {
-    if (!imagePath) return 'https://placehold.co/300x300/e8d5b7/8B7355?text=Image+Error';
-    
+    if (!imagePath)
+      return "https://placehold.co/300x300/e8d5b7/8B7355?text=Image+Error";
+
     // If it's already a full URL (Cloudinary, Render, etc.)
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
       // If it's a localhost URL, replace with Render URL
-      if (imagePath.includes('localhost:5000')) {
-        return imagePath.replace('http://localhost:5000', BASE_URL);
+      if (imagePath.includes("localhost:5000")) {
+        return imagePath.replace("http://localhost:5000", BASE_URL);
       }
       return imagePath;
     }
-    
+
     // If it's a relative path
-    if (imagePath.startsWith('/uploads/')) {
+    if (imagePath.startsWith("/uploads/")) {
       return `${BASE_URL}${imagePath}`;
     }
-    
-    if (imagePath.startsWith('uploads/')) {
+
+    if (imagePath.startsWith("uploads/")) {
       return `${BASE_URL}/${imagePath}`;
     }
-    
+
     // Default
     return `${BASE_URL}/uploads/${imagePath}`;
   };
@@ -228,14 +281,16 @@ function AdminAddProduct() {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6">
-        {isEditMode ? 'Edit Product' : 'Add New Product'}
+        {isEditMode ? "Edit Product" : "Add New Product"}
       </h2>
 
       <form onSubmit={handleSubmit} className="max-w-4xl">
         <div className="bg-white rounded-lg shadow p-6 space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Title *
+            </label>
             <input
               type="text"
               name="title"
@@ -249,7 +304,9 @@ function AdminAddProduct() {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description
+            </label>
             <textarea
               name="description"
               value={formData.description}
@@ -263,7 +320,9 @@ function AdminAddProduct() {
           {/* Price & Original Price */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Selling Price (₹) *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Selling Price (₹) *
+              </label>
               <input
                 type="number"
                 name="price"
@@ -275,10 +334,14 @@ function AdminAddProduct() {
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
                 placeholder="1999"
               />
-              <p className="text-xs text-gray-500 mt-1">The price customers will pay</p>
+              <p className="text-xs text-gray-500 mt-1">
+                The price customers will pay
+              </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Original Price (MRP) ₹</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Original Price (MRP) ₹
+              </label>
               <input
                 type="number"
                 name="originalPrice"
@@ -289,27 +352,42 @@ function AdminAddProduct() {
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
                 placeholder="2499"
               />
-              <p className="text-xs text-gray-500 mt-1">Higher than selling price to show discount</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Higher than selling price to show discount
+              </p>
             </div>
           </div>
 
           {/* Discount Preview */}
-          {formData.price && formData.originalPrice && 
+          {formData.price &&
+            formData.originalPrice &&
             parseFloat(formData.originalPrice) > parseFloat(formData.price) && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-              <p className="text-green-700 font-medium">
-                🎉 Discount: {Math.round(((parseFloat(formData.originalPrice) - parseFloat(formData.price)) / parseFloat(formData.originalPrice)) * 100)}% OFF
-              </p>
-              <p className="text-green-600 text-sm">
-                Customers save ₹{parseFloat(formData.originalPrice) - parseFloat(formData.price)} per item
-              </p>
-            </div>
-          )}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-green-700 font-medium">
+                  🎉 Discount:{" "}
+                  {Math.round(
+                    ((parseFloat(formData.originalPrice) -
+                      parseFloat(formData.price)) /
+                      parseFloat(formData.originalPrice)) *
+                      100,
+                  )}
+                  % OFF
+                </p>
+                <p className="text-green-600 text-sm">
+                  Customers save ₹
+                  {parseFloat(formData.originalPrice) -
+                    parseFloat(formData.price)}{" "}
+                  per item
+                </p>
+              </div>
+            )}
 
           {/* Category & Color */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category *
+              </label>
               <select
                 name="category"
                 value={formData.category}
@@ -318,8 +396,10 @@ function AdminAddProduct() {
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
               >
                 <option value="">Select Category</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name}
+                  </option>
                 ))}
               </select>
               {categories.length === 0 && (
@@ -329,7 +409,9 @@ function AdminAddProduct() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Color
+              </label>
               <select
                 name="color"
                 value={formData.color}
@@ -337,8 +419,10 @@ function AdminAddProduct() {
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
               >
                 <option value="">Select Color</option>
-                {colors.map(color => (
-                  <option key={color.id} value={color.name}>{color.name}</option>
+                {colors.map((color) => (
+                  <option key={color.id} value={color.name}>
+                    {color.name}
+                  </option>
                 ))}
               </select>
               {colors.length === 0 && (
@@ -351,7 +435,9 @@ function AdminAddProduct() {
 
           {/* Stock */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Stock *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Stock *
+            </label>
             <input
               type="number"
               name="stock"
@@ -366,8 +452,10 @@ function AdminAddProduct() {
 
           {/* Images */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Images</label>
-            
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Images
+            </label>
+
             {formData.images.length > 0 && (
               <div className="grid grid-cols-4 gap-4 mb-4">
                 {formData.images.map((image, index) => (
@@ -379,12 +467,13 @@ function AdminAddProduct() {
                       onError={(e) => {
                         // Try to fix localhost URLs
                         let src = e.target.src;
-                        if (src.includes('localhost:5000')) {
-                          src = src.replace('http://localhost:5000', BASE_URL);
+                        if (src.includes("localhost:5000")) {
+                          src = src.replace("http://localhost:5000", BASE_URL);
                           e.target.src = src;
                         } else {
                           // If still fails, use placeholder
-                          e.target.src = 'https://placehold.co/300x300/e8d5b7/8B7355?text=Image+Error';
+                          e.target.src =
+                            "https://placehold.co/300x300/e8d5b7/8B7355?text=Image+Error";
                         }
                       }}
                     />
@@ -402,8 +491,12 @@ function AdminAddProduct() {
 
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
               <FaUpload className="text-3xl text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600 mb-2">Drag and drop images or click to browse</p>
-              <p className="text-xs text-gray-400 mb-4">Supports JPG, PNG, WEBP (Max 5MB each)</p>
+              <p className="text-gray-600 mb-2">
+                Drag and drop images or click to browse
+              </p>
+              <p className="text-xs text-gray-400 mb-4">
+                Supports JPG, PNG, WEBP (Max 5MB each)
+              </p>
               <input
                 type="file"
                 multiple
@@ -427,7 +520,10 @@ function AdminAddProduct() {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {imageFiles.map((file, index) => (
-                    <span key={index} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                    <span
+                      key={index}
+                      className="text-xs bg-gray-100 px-2 py-1 rounded"
+                    >
                       {file.name}
                     </span>
                   ))}
@@ -439,7 +535,7 @@ function AdminAddProduct() {
           <div className="flex justify-end space-x-4 pt-4 border-t">
             <button
               type="button"
-              onClick={() => navigate('/admin/products')}
+              onClick={() => navigate("/admin/products")}
               className="px-6 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancel
@@ -448,10 +544,16 @@ function AdminAddProduct() {
               type="submit"
               disabled={uploading || categories.length === 0}
               className={`px-6 py-2 bg-primary text-white rounded-lg transition-colors ${
-                uploading || categories.length === 0 ? 'opacity-70 cursor-not-allowed' : 'hover:bg-secondary'
+                uploading || categories.length === 0
+                  ? "opacity-70 cursor-not-allowed"
+                  : "hover:bg-secondary"
               }`}
             >
-              {uploading ? 'Saving...' : isEditMode ? 'Update Product' : 'Add Product'}
+              {uploading
+                ? "Saving..."
+                : isEditMode
+                  ? "Update Product"
+                  : "Add Product"}
             </button>
           </div>
         </div>
