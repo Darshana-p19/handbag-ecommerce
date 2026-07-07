@@ -2,17 +2,35 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../config/firebase');
 
-// ✅ Dynamic BASE_URL
+// ✅ Dynamic BASE_URL based on environment
 const BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://handbag-ecommerce.onrender.com'
   : 'http://localhost:5000';
 
-// ✅ Fixed image URL helper
+// ✅ Helper function to get full image URL
 function getImageUrl(imagePath) {
   if (!imagePath) return `${BASE_URL}/uploads/default-product.jpg`;
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;
-  if (imagePath.startsWith('/uploads/')) return `${BASE_URL}${imagePath}`;
-  if (imagePath.startsWith('uploads/')) return `${BASE_URL}/${imagePath}`;
+  
+  // ✅ If already a full URL (Cloudinary, etc.), return as is
+  if (imagePath && (imagePath.startsWith('http://') || imagePath.startsWith('https://'))) {
+    // Check if it's a Cloudinary URL (contains cloudinary.com)
+    if (imagePath.includes('cloudinary.com')) {
+      return imagePath; // Cloudinary URLs are already full and working
+    }
+    return imagePath;
+  }
+  
+  // If it's a relative path starting with /uploads
+  if (imagePath && imagePath.startsWith('/uploads/')) {
+    return `${BASE_URL}${imagePath}`;
+  }
+  
+  // If it's just a filename
+  if (imagePath && imagePath.startsWith('uploads/')) {
+    return `${BASE_URL}/${imagePath}`;
+  }
+  
+  // Default: assume it's in uploads folder
   return `${BASE_URL}/uploads/${imagePath}`;
 }
 
@@ -25,7 +43,13 @@ router.get('/', async (req, res) => {
     snapshot.forEach(doc => {
       const data = doc.data();
       let images = data.images || [];
-      images = images.length > 0 ? images.map(img => getImageUrl(img)) : [`${BASE_URL}/uploads/default-product.jpg`];
+      
+      // Process images to ensure full URLs
+      if (images.length > 0) {
+        images = images.map(img => getImageUrl(img));
+      } else {
+        images = [`${BASE_URL}/uploads/default-product.jpg`];
+      }
       
       products.push({
         id: doc.id,
@@ -39,7 +63,8 @@ router.get('/', async (req, res) => {
         stock: Number(data.stock) || 10,
         images: images,
         featured: data.featured || false,
-        createdAt: data.createdAt || new Date().toISOString()
+        createdAt: data.createdAt || new Date().toISOString(),
+        updatedAt: data.updatedAt || new Date().toISOString()
       });
     });
     
@@ -55,21 +80,36 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const doc = await db.collection('products').doc(req.params.id).get();
-    if (!doc.exists) return res.status(404).json({ message: 'Product not found' });
+    if (!doc.exists) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
     
     const data = doc.data();
     let images = data.images || [];
-    images = images.length > 0 ? images.map(img => getImageUrl(img)) : [`${BASE_URL}/uploads/default-product.jpg`];
+    
+    if (images.length > 0) {
+      images = images.map(img => getImageUrl(img));
+    } else {
+      images = [`${BASE_URL}/uploads/default-product.jpg`];
+    }
     
     res.json({
       id: doc.id,
-      ...data,
-      images: images,
+      title: data.title || 'Untitled',
+      description: data.description || '',
       price: Number(data.price) || 999,
       originalPrice: data.originalPrice ? Number(data.originalPrice) : null,
-      stock: Number(data.stock) || 10
+      discountPercentage: data.discountPercentage || 0,
+      category: data.category || 'Uncategorized',
+      color: data.color || 'Not specified',
+      stock: Number(data.stock) || 10,
+      images: images,
+      featured: data.featured || false,
+      createdAt: data.createdAt || new Date().toISOString(),
+      updatedAt: data.updatedAt || new Date().toISOString()
     });
   } catch (error) {
+    console.error('Error fetching product:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -77,14 +117,26 @@ router.get('/:id', async (req, res) => {
 // POST create product
 router.post('/', async (req, res) => {
   try {
-    const { title, description, price, originalPrice, category, color, stock, images } = req.body;
+    const { 
+      title, description, price, originalPrice, category, color, stock, images 
+    } = req.body;
+
     const sellingPrice = parseFloat(price) || 0;
     const mrpPrice = originalPrice ? parseFloat(originalPrice) : null;
 
-    if (sellingPrice <= 0) return res.status(400).json({ message: 'Price must be greater than 0' });
-    if (mrpPrice && mrpPrice <= sellingPrice) return res.status(400).json({ message: 'Original price must be higher than selling price' });
+    if (sellingPrice <= 0) {
+      return res.status(400).json({ message: 'Price must be greater than 0' });
+    }
 
-    const discountPercentage = mrpPrice && mrpPrice > sellingPrice ? Math.round(((mrpPrice - sellingPrice) / mrpPrice) * 100) : 0;
+    if (mrpPrice && mrpPrice <= sellingPrice) {
+      return res.status(400).json({ 
+        message: 'Original price (MRP) must be higher than selling price' 
+      });
+    }
+
+    const discountPercentage = mrpPrice && mrpPrice > sellingPrice 
+      ? Math.round(((mrpPrice - sellingPrice) / mrpPrice) * 100) 
+      : 0;
 
     const productData = {
       title: title || 'Untitled',
@@ -103,6 +155,8 @@ router.post('/', async (req, res) => {
     
     const docRef = await db.collection('products').add(productData);
     console.log('✅ Product created:', docRef.id);
+    
+    // ✅ Return with processed images (already full URLs from Cloudinary)
     res.status(201).json({ id: docRef.id, ...productData });
   } catch (error) {
     console.error('Error creating product:', error);
@@ -113,13 +167,53 @@ router.post('/', async (req, res) => {
 // PUT update product
 router.put('/:id', async (req, res) => {
   try {
-    const updateData = { ...req.body, updatedAt: new Date().toISOString() };
-    if (updateData.price !== undefined) updateData.price = parseFloat(updateData.price) || 0;
-    if (updateData.stock !== undefined) updateData.stock = parseInt(updateData.stock) || 0;
+    const updateData = { ...req.body };
+    const docRef = db.collection('products').doc(req.params.id);
+    const doc = await docRef.get();
     
-    await db.collection('products').doc(req.params.id).update(updateData);
+    if (!doc.exists) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    const existingData = doc.data();
+    
+    if (updateData.price !== undefined) {
+      updateData.price = parseFloat(updateData.price) || 0;
+      if (updateData.price <= 0) {
+        return res.status(400).json({ message: 'Price must be greater than 0' });
+      }
+    }
+
+    if (updateData.originalPrice !== undefined) {
+      if (updateData.originalPrice === '' || updateData.originalPrice === null) {
+        updateData.originalPrice = null;
+        updateData.discountPercentage = 0;
+      } else {
+        updateData.originalPrice = parseFloat(updateData.originalPrice);
+        const sellingPrice = updateData.price !== undefined ? updateData.price : existingData.price;
+        
+        if (updateData.originalPrice <= sellingPrice) {
+          return res.status(400).json({ 
+            message: 'Original price (MRP) must be higher than selling price' 
+          });
+        }
+        
+        updateData.discountPercentage = Math.round(
+          ((updateData.originalPrice - sellingPrice) / updateData.originalPrice) * 100
+        );
+      }
+    }
+
+    if (updateData.stock !== undefined) {
+      updateData.stock = parseInt(updateData.stock) || 0;
+    }
+
+    updateData.updatedAt = new Date().toISOString();
+    
+    await docRef.update(updateData);
     res.json({ message: 'Product updated successfully' });
   } catch (error) {
+    console.error('Error updating product:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -130,6 +224,7 @@ router.delete('/:id', async (req, res) => {
     await db.collection('products').doc(req.params.id).delete();
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
+    console.error('Error deleting product:', error);
     res.status(500).json({ message: error.message });
   }
 });

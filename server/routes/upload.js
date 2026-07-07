@@ -1,36 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('../config/cloudinary');
 
-// ✅ Dynamic BASE_URL based on environment
-const BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://handbag-ecommerce.onrender.com'
-  : 'http://localhost:5000';
-
-console.log(`📁 Uploads will use BASE_URL: ${BASE_URL}`);
-
-// Create uploads directory if it doesn't exist
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configure multer for local storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Use memory storage (no local files)
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
@@ -40,19 +18,31 @@ const upload = multer({
   }
 });
 
-// Upload single image
+// Upload single image to Cloudinary
 router.post('/single', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'Please upload a file' });
     }
 
-    // ✅ Use dynamic BASE_URL
-    const imageUrl = `${BASE_URL}/uploads/${req.file.filename}`;
+    // Convert buffer to base64
+    const b64 = Buffer.from(req.file.buffer).toString('base64');
+    const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(dataURI, {
+      folder: 'handbag-store',
+      width: 800,
+      crop: 'scale',
+      quality: 'auto',
+      fetch_format: 'auto'
+    });
+
+    console.log('✅ Image uploaded to Cloudinary:', result.secure_url);
     
     res.json({
-      url: imageUrl,
-      public_id: req.file.filename
+      url: result.secure_url,
+      public_id: result.public_id
     });
   } catch (error) {
     console.error('Upload error:', error);
@@ -60,20 +50,34 @@ router.post('/single', upload.single('image'), async (req, res) => {
   }
 });
 
-// Upload multiple images
+// Upload multiple images to Cloudinary
 router.post('/multiple', upload.array('images', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'Please upload at least one file' });
     }
 
-    // ✅ Use dynamic BASE_URL
-    const images = req.files.map(file => ({
-      url: `${BASE_URL}/uploads/${file.filename}`,
-      public_id: file.filename
+    // Upload all images to Cloudinary
+    const uploadPromises = req.files.map(file => {
+      const b64 = Buffer.from(file.buffer).toString('base64');
+      const dataURI = `data:${file.mimetype};base64,${b64}`;
+      
+      return cloudinary.uploader.upload(dataURI, {
+        folder: 'handbag-store',
+        width: 800,
+        crop: 'scale',
+        quality: 'auto',
+        fetch_format: 'auto'
+      });
+    });
+
+    const results = await Promise.all(uploadPromises);
+    const images = results.map(result => ({
+      url: result.secure_url,
+      public_id: result.public_id
     }));
 
-    console.log(`📤 Uploaded ${images.length} images:`, images.map(i => i.url));
+    console.log(`✅ ${images.length} images uploaded to Cloudinary`);
     res.json(images);
   } catch (error) {
     console.error('Upload error:', error);
