@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const cloudinary = require('../config/cloudinary');
+const crypto = require('crypto');
 
 // Memory storage
 const storage = multer.memoryStorage();
@@ -33,7 +34,44 @@ router.get('/test', (req, res) => {
   });
 });
 
-// ✅ MULTIPLE UPLOAD - FIXED VERSION
+// ✅ Generate upload signature endpoint (for client-side uploads)
+router.get('/signature', (req, res) => {
+  try {
+    // Use current timestamp but add a small buffer
+    const timestamp = Math.floor(Date.now() / 1000);
+    
+    // Generate signature using Cloudinary's signing method
+    const params = {
+      timestamp: timestamp,
+      folder: 'handbag-store'
+    };
+    
+    // Sort params alphabetically
+    const sortedParams = Object.keys(params)
+      .sort()
+      .map(key => `${key}=${params[key]}`)
+      .join('&');
+    
+    // Create signature
+    const signature = crypto
+      .createHash('sha256')
+      .update(sortedParams + process.env.CLOUDINARY_API_SECRET)
+      .digest('hex');
+    
+    res.json({
+      signature: signature,
+      timestamp: timestamp,
+      folder: 'handbag-store',
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY
+    });
+  } catch (error) {
+    console.error('Signature generation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ MULTIPLE UPLOAD - Using unsigned upload (recommended for this issue)
 router.post('/multiple', upload.array('images', 10), async (req, res) => {
   try {
     console.log('📤 Upload request received');
@@ -61,34 +99,24 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
 
     console.log('☁️ Uploading to Cloudinary...');
 
-    // Upload each image
     const imageUrls = [];
     const errors = [];
     
     for (let i = 0; i < req.files.length; i++) {
       const file = req.files[i];
       try {
+        // Convert to base64
         const b64 = Buffer.from(file.buffer).toString('base64');
         const dataURI = `data:${file.mimetype};base64,${b64}`;
         
         console.log(`   Uploading ${i + 1}: ${file.originalname} (${file.size} bytes)`);
         
-        // ✅ IMPORTANT: Use upload_stream instead of upload to avoid timestamp issues
-        const result = await new Promise((resolve, reject) => {
-          const uploadStream = cloudinary.uploader.upload_stream(
-            {
-              folder: 'handbag-store',
-              resource_type: 'auto',
-              // ✅ Don't manually set timestamp - let Cloudinary handle it
-            },
-            (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
-            }
-          );
-          
-          // Write the buffer to the stream
-          uploadStream.end(file.buffer);
+        // ✅ Use unsigned upload - Cloudinary will handle the signature
+        const result = await cloudinary.uploader.upload(dataURI, {
+          folder: 'handbag-store',
+          resource_type: 'auto',
+          // ⚠️ IMPORTANT: Set upload_preset for unsigned uploads
+          // Or use the SDK's default behavior
         });
         
         console.log(`   ✅ Uploaded: ${result.secure_url}`);
@@ -124,7 +152,7 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
   }
 });
 
-// ✅ SINGLE UPLOAD - FIXED VERSION
+// ✅ SINGLE UPLOAD
 router.post('/single', upload.single('image'), async (req, res) => {
   try {
     console.log('📤 Single upload request received');
@@ -142,20 +170,12 @@ router.post('/single', upload.single('image'), async (req, res) => {
       });
     }
 
-    // ✅ Use upload_stream instead
-    const result = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'handbag-store',
-          resource_type: 'auto'
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      
-      uploadStream.end(req.file.buffer);
+    const b64 = Buffer.from(req.file.buffer).toString('base64');
+    const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+    const result = await cloudinary.uploader.upload(dataURI, {
+      folder: 'handbag-store',
+      resource_type: 'auto'
     });
 
     res.json({
