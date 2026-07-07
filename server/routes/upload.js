@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const cloudinary = require('../config/cloudinary');
-const crypto = require('crypto');
+const axios = require('axios');
+const FormData = require('form-data');
 
 // Memory storage
 const storage = multer.memoryStorage();
@@ -23,61 +23,19 @@ const upload = multer({
 router.get('/test', (req, res) => {
   res.json({
     message: 'Upload route is working!',
-    cloudinary_configured: !!process.env.CLOUDINARY_CLOUD_NAME && 
-                            !!process.env.CLOUDINARY_API_KEY && 
-                            !!process.env.CLOUDINARY_API_SECRET,
+    cloudinary_configured: !!process.env.CLOUDINARY_CLOUD_NAME,
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'missing',
     api_key: process.env.CLOUDINARY_API_KEY ? 'present' : 'missing',
-    api_secret: process.env.CLOUDINARY_API_SECRET ? 'present' : 'missing',
-    server_time: new Date().toISOString(),
-    server_timestamp: Math.floor(Date.now() / 1000)
+    upload_preset: 'handbag-store',
+    server_time: new Date().toISOString()
   });
 });
 
-// ✅ Generate upload signature endpoint (for client-side uploads)
-router.get('/signature', (req, res) => {
-  try {
-    // Use current timestamp but add a small buffer
-    const timestamp = Math.floor(Date.now() / 1000);
-    
-    // Generate signature using Cloudinary's signing method
-    const params = {
-      timestamp: timestamp,
-      folder: 'handbag-store'
-    };
-    
-    // Sort params alphabetically
-    const sortedParams = Object.keys(params)
-      .sort()
-      .map(key => `${key}=${params[key]}`)
-      .join('&');
-    
-    // Create signature
-    const signature = crypto
-      .createHash('sha256')
-      .update(sortedParams + process.env.CLOUDINARY_API_SECRET)
-      .digest('hex');
-    
-    res.json({
-      signature: signature,
-      timestamp: timestamp,
-      folder: 'handbag-store',
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY
-    });
-  } catch (error) {
-    console.error('Signature generation error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ✅ MULTIPLE UPLOAD - Using unsigned upload (recommended for this issue)
+// ✅ MULTIPLE UPLOAD - Using unsigned upload preset
 router.post('/multiple', upload.array('images', 10), async (req, res) => {
   try {
     console.log('📤 Upload request received');
     console.log('   Files:', req.files?.length || 0);
-    console.log('   Server Time:', new Date().toISOString());
-    console.log('   Timestamp:', Math.floor(Date.now() / 1000));
     
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ 
@@ -86,18 +44,17 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
       });
     }
 
-    // Check Cloudinary config
-    if (!process.env.CLOUDINARY_CLOUD_NAME || 
-        !process.env.CLOUDINARY_API_KEY || 
-        !process.env.CLOUDINARY_API_SECRET) {
-      console.error('❌ Cloudinary credentials missing!');
+    if (!process.env.CLOUDINARY_CLOUD_NAME) {
+      console.error('❌ Cloudinary cloud name missing!');
       return res.status(500).json({
         success: false,
-        message: 'Cloudinary not configured. Please contact admin.'
+        message: 'Cloudinary not configured'
       });
     }
 
-    console.log('☁️ Uploading to Cloudinary...');
+    console.log('☁️ Uploading to Cloudinary using unsigned preset...');
+    console.log(`   Cloud Name: ${process.env.CLOUDINARY_CLOUD_NAME}`);
+    console.log(`   Upload Preset: handbag-store`);
 
     const imageUrls = [];
     const errors = [];
@@ -105,27 +62,36 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
     for (let i = 0; i < req.files.length; i++) {
       const file = req.files[i];
       try {
-        // Convert to base64
-        const b64 = Buffer.from(file.buffer).toString('base64');
-        const dataURI = `data:${file.mimetype};base64,${b64}`;
-        
         console.log(`   Uploading ${i + 1}: ${file.originalname} (${file.size} bytes)`);
         
-        // ✅ Use unsigned upload - Cloudinary will handle the signature
-        const result = await cloudinary.uploader.upload(dataURI, {
-          folder: 'handbag-store',
-          resource_type: 'auto',
-          // ⚠️ IMPORTANT: Set upload_preset for unsigned uploads
-          // Or use the SDK's default behavior
+        // ✅ IMPORTANT: Use FormData for unsigned upload
+        const formData = new FormData();
+        formData.append('file', file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype
         });
+        formData.append('upload_preset', 'handbag-store');
+        formData.append('folder', 'handbag-store');
         
-        console.log(`   ✅ Uploaded: ${result.secure_url}`);
-        imageUrls.push(result.secure_url);
+        // Upload directly to Cloudinary API
+        const response = await axios.post(
+          `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload`,
+          formData,
+          {
+            headers: {
+              ...formData.getHeaders()
+            },
+            timeout: 30000 // 30 seconds timeout
+          }
+        );
+        
+        console.log(`   ✅ Uploaded: ${response.data.secure_url}`);
+        imageUrls.push(response.data.secure_url);
       } catch (err) {
-        console.error(`   ❌ Failed: ${file.originalname}`, err.message);
+        console.error(`   ❌ Failed: ${file.originalname}`, err.response?.data?.error?.message || err.message);
         errors.push({
           file: file.originalname,
-          error: err.message
+          error: err.response?.data?.error?.message || err.message
         });
       }
     }
@@ -161,34 +127,46 @@ router.post('/single', upload.single('image'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
-    if (!process.env.CLOUDINARY_CLOUD_NAME || 
-        !process.env.CLOUDINARY_API_KEY || 
-        !process.env.CLOUDINARY_API_SECRET) {
+    if (!process.env.CLOUDINARY_CLOUD_NAME) {
       return res.status(500).json({
         success: false,
         message: 'Cloudinary not configured'
       });
     }
 
-    const b64 = Buffer.from(req.file.buffer).toString('base64');
-    const dataURI = `data:${req.file.mimetype};base64,${b64}`;
-
-    const result = await cloudinary.uploader.upload(dataURI, {
-      folder: 'handbag-store',
-      resource_type: 'auto'
+    console.log(`☁️ Uploading: ${req.file.originalname}`);
+    
+    const formData = new FormData();
+    formData.append('file', req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype
     });
+    formData.append('upload_preset', 'handbag-store');
+    formData.append('folder', 'handbag-store');
+    
+    const response = await axios.post(
+      `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload`,
+      formData,
+      {
+        headers: {
+          ...formData.getHeaders()
+        }
+      }
+    );
+
+    console.log(`✅ Uploaded: ${response.data.secure_url}`);
 
     res.json({
       success: true,
-      url: result.secure_url,
-      public_id: result.public_id
+      url: response.data.secure_url,
+      public_id: response.data.public_id
     });
 
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('Upload error:', error.response?.data || error.message);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.response?.data?.error?.message || error.message
     });
   }
 });
