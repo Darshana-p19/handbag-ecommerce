@@ -21,6 +21,7 @@ const upload = multer({
 // ✅ TEST ENDPOINT
 router.get('/test', (req, res) => {
   res.json({
+    message: 'Upload route is working!',
     cloudinary_configured: !!process.env.CLOUDINARY_CLOUD_NAME && 
                             !!process.env.CLOUDINARY_API_KEY && 
                             !!process.env.CLOUDINARY_API_SECRET,
@@ -56,7 +57,7 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
 
     console.log('☁️ Uploading to Cloudinary...');
 
-    // ✅ Upload each image
+    // Upload each image
     const imageUrls = [];
     
     for (let i = 0; i < req.files.length; i++) {
@@ -67,10 +68,8 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
         
         console.log(`   Uploading ${i + 1}: ${file.originalname} (${file.size} bytes)`);
         
-        // ✅ Remove transformation parameters to avoid signature issues
         const result = await cloudinary.uploader.upload(dataURI, {
-          folder: 'handbag-store',
-          resource_type: 'auto'
+          folder: 'handbag-store'
         });
         
         console.log(`   ✅ Uploaded: ${result.secure_url}`);
@@ -117,10 +116,8 @@ router.post('/single', upload.single('image'), async (req, res) => {
     const b64 = Buffer.from(req.file.buffer).toString('base64');
     const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
-    // ✅ Remove transformation parameters to avoid signature issues
     const result = await cloudinary.uploader.upload(dataURI, {
-      folder: 'handbag-store',
-      resource_type: 'auto'
+      folder: 'handbag-store'
     });
 
     res.json({
