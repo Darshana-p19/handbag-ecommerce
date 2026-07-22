@@ -147,11 +147,11 @@ function ProductDetails() {
                     🎨 {product.color}
                   </span>
                 )}
-                <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
+                {/* <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
                   (product.stock || 0) > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                 }`}>
                   {(product.stock || 0) > 0 ? `📦 ${product.stock} in stock` : 'Out of stock'}
-                </span>
+                </span> */}
               </div>
               
               <h1 className={`text-3xl md:text-4xl font-playfair font-bold mt-4 mb-2 ${
